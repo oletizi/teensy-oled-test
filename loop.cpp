@@ -40,6 +40,11 @@ AudioControlSGTL5000 sgtl5000_1;     //xy=116,218
 // GUItool: end automatically generated code
 
 Adafruit_SSD1306 display(4);
+const uint16_t AUDIO_MEMORY = 192;
+float audio_cpu;
+float audio_cpu_max;
+float audio_ram;
+float audio_ram_max;
 
 short counter = 0;
 short direction = -1;
@@ -65,7 +70,7 @@ __attribute__((unused)) void doSetup() {
 
     // Audio connections require memory to work.  For more
     // detailed information, see the MemoryAndCpuUsage example
-    AudioMemory(128);
+    AudioMemory(AUDIO_MEMORY);
 
     // Comment these out if not using the audio adaptor board.
     // This may wait forever if the SDA & SCL pins lack
@@ -134,14 +139,16 @@ __attribute__((unused)) void doLoop() {
     if (t0 == now) {
         peak_val = peak1.read();
     }
+    audio_cpu = AudioProcessorUsage();
+    audio_ram = AudioMemoryUsage();
     AudioInterrupts();
     //digitalWrite(LED_BUILTIN, HIGH);
     display.clearDisplay();
     display.setTextColor(WHITE);
     display.setCursor(0, 8);
     //display.printf("Count: %d\n", counter);
-    display.printf("Ofreq: %f\n", osc_freq);
-    display.printf("RMS  : %f\n", rms_val);
+    display.printf("cpu: %f\n", audio_cpu);
+    display.printf("mem: %f\n", audio_ram);
     display.printf("Peak : %f\n", peak_val);
     //display.drawCircle(counter, 16, 5, WHITE);
     float rms_indicator_value = scale(rms_val, 0, 1, 0, 127, 1);
@@ -195,7 +202,7 @@ void handleControlChange(byte channel, byte control, byte value) {
             delay1.delay(0, scale(value, 0, 127, 0, 500, 1));
             break;
         case CC_DELAY_FEEDBACK:
-            feedback_value = scale(value, 0, 127, 0, 1, 1);
+            feedback_value = scale(value, 0, 127, 0, 1, 1.02);
             delay_feedback.gain(feedback_value);
             break;
         default:
