@@ -9,29 +9,35 @@
 #include <SPI.h>
 #include <SD.h>
 #include <SerialFlash.h>
-#include <MIDI.h>
 
 // GUItool: begin automatically generated code
-AudioSynthWaveform       waveform1;      //xy=119,156
-AudioFilterLadder        ladder1;        //xy=281,153
-AudioEffectEnvelope      amp_env;      //xy=439,150
-AudioEffectFreeverb      freeverb1;      //xy=498,243
-AudioMixer4              mixer1;         //xy=598,153
-AudioOutputI2S           i2s1;           //xy=774,147
-AudioAnalyzeRMS          rms1;           //xy=774,195
-AudioAnalyzePeak         peak1;          //xy=776,244
-AudioConnection          patchCord1(waveform1, 0, ladder1, 0);
-AudioConnection          patchCord2(ladder1, amp_env);
-AudioConnection          patchCord3(amp_env, 0, mixer1, 0);
-AudioConnection          patchCord4(amp_env, freeverb1);
-AudioConnection          patchCord5(freeverb1, 0, mixer1, 1);
-AudioConnection          patchCord6(mixer1, 0, i2s1, 0);
-AudioConnection          patchCord7(mixer1, 0, i2s1, 1);
-AudioConnection          patchCord8(mixer1, rms1);
-AudioConnection          patchCord9(mixer1, peak1);
-AudioControlSGTL5000     sgtl5000_1;     //xy=299,289
+AudioSynthWaveform waveform1;      //xy=119,156
+AudioFilterLadder ladder1;        //xy=281,153
+AudioMixer4 delay_input_mixer;         //xy=283,353
+AudioEffectEnvelope amp_env;      //xy=439,150
+AudioEffectDelay delay1;         //xy=512,354
+AudioEffectFreeverb freeverb1;      //xy=516,246
+AudioMixer4 mixer1;         //xy=598,153
+AudioAmplifier delay_feedback;           //xy=717,445
+AudioOutputI2S i2s1;           //xy=774,147
+AudioAnalyzeRMS rms1;           //xy=774,195
+AudioAnalyzePeak peak1;          //xy=776,244
+AudioConnection patchCord1(waveform1, 0, ladder1, 0);
+AudioConnection patchCord2(ladder1, amp_env);
+AudioConnection patchCord3(delay_input_mixer, delay1);
+AudioConnection patchCord4(amp_env, 0, mixer1, 0);
+AudioConnection patchCord5(amp_env, freeverb1);
+AudioConnection patchCord6(amp_env, 0, delay_input_mixer, 0);
+AudioConnection patchCord7(delay1, 0, delay_feedback, 0);
+AudioConnection patchCord8(delay1, 0, mixer1, 2);
+AudioConnection patchCord9(freeverb1, 0, mixer1, 1);
+AudioConnection patchCord10(mixer1, 0, i2s1, 0);
+AudioConnection patchCord11(mixer1, 0, i2s1, 1);
+AudioConnection patchCord12(mixer1, rms1);
+AudioConnection patchCord13(mixer1, peak1);
+AudioConnection patchCord14(delay_feedback, 0, delay_input_mixer, 1);
+AudioControlSGTL5000 sgtl5000_1;     //xy=116,218
 // GUItool: end automatically generated code
-
 
 Adafruit_SSD1306 display(4);
 
@@ -59,7 +65,7 @@ __attribute__((unused)) void doSetup() {
 
     // Audio connections require memory to work.  For more
     // detailed information, see the MemoryAndCpuUsage example
-    AudioMemory(48);
+    AudioMemory(128);
 
     // Comment these out if not using the audio adaptor board.
     // This may wait forever if the SDA & SCL pins lack
@@ -67,10 +73,23 @@ __attribute__((unused)) void doSetup() {
     sgtl5000_1.enable();
     sgtl5000_1.volume(.7); // caution: very loud - use oscilloscope only!
 
-    mixer1.gain(0, 0.7);
-    mixer1.gain(1, 0.3);
+    // configure mixer
+    mixer1.gain(0, 0.5); // dry
+    mixer1.gain(1, 0.25); // reverb
+    mixer1.gain(2, 0.5); // delay
 
+    // configure reverb
     freeverb1.roomsize(0.5);
+
+    // configure delay
+    delay1.delay(0, 250);
+    for (int i = 1; i < 8; i++) {
+        // turn off the taps we're not using
+        delay1.disable(i);
+    }
+    delay_feedback.gain(0.5);
+    delay_input_mixer.gain(0, 0.5); // dry input
+    delay_input_mixer.gain(1, 0.5); // feedback input
 
     // initialize amp envelope
     amp_env.attack(50);
@@ -160,6 +179,7 @@ void handleNoteOff(byte channel, byte note, byte velocity) {
 void handleControlChange(byte channel, byte control, byte value) {
     Serial.printf("CC: chan: %d, control: %d, val: %d", channel, control, value);
     digitalWrite(LED_BUILTIN, HIGH);
+    float feedback_value = 0;
     AudioNoInterrupts();
     switch (control) {
         case CC_REVERB_TIME:
@@ -171,10 +191,19 @@ void handleControlChange(byte channel, byte control, byte value) {
         case CC_REVERB_BALANCE:
             mixer1.gain(1, scale(value, 0, 127, 0, 1, 1));
             break;
-        default: break;
+        case CC_DELAY_TIME:
+            delay1.delay(0, scale(value, 0, 127, 0, 500, 1));
+            break;
+        case CC_DELAY_FEEDBACK:
+            feedback_value = scale(value, 0, 127, 0, 1, 1);
+            delay_feedback.gain(feedback_value);
+            break;
+        default:
+            break;
 
     }
     AudioInterrupts();
+    Serial.printf("Delay feebdack: %f\n", feedback_value);
 }
 
 float m2f(int note) {
