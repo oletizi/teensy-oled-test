@@ -11,13 +11,24 @@
 #include <MIDI.h>
 
 // GUItool: begin automatically generated code
-AudioSynthWaveform waveform1;      //xy=119,156
-AudioFilterLadder ladder1;        //xy=281,153
-AudioOutputI2S i2s1;           //xy=420,155
-AudioConnection patchCord1(waveform1, 0, ladder1, 0);
-AudioConnection patchCord2(ladder1, 0, i2s1, 0);
-AudioConnection patchCord3(ladder1, 0, i2s1, 1);
-AudioControlSGTL5000 sgtl5000_1;     //xy=299,289
+#include <Audio.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <SD.h>
+#include <SerialFlash.h>
+
+// GUItool: begin automatically generated code
+AudioSynthWaveform       waveform1;      //xy=119,156
+AudioFilterLadder        ladder1;        //xy=281,153
+AudioEffectEnvelope      amp_env;      //xy=439,150
+AudioOutputI2S           i2s1;           //xy=616,173
+AudioConnection          patchCord1(waveform1, 0, ladder1, 0);
+AudioConnection          patchCord2(ladder1, amp_env);
+AudioConnection          patchCord3(amp_env, 0, i2s1, 0);
+AudioConnection          patchCord4(amp_env, 0, i2s1, 1);
+AudioControlSGTL5000     sgtl5000_1;     //xy=299,289
+// GUItool: end automatically generated code
+
 // GUItool: end automatically generated code
 
 Adafruit_SSD1306 display(4);
@@ -46,6 +57,15 @@ __attribute__((unused)) void doSetup() {
     // pullup resistors
     sgtl5000_1.enable();
     sgtl5000_1.volume(0.5); // caution: very loud - use oscilloscope only!
+
+    // initialize amp envelope
+    amp_env.attack(0);
+    amp_env.hold(0);
+    amp_env.decay(0);
+    amp_env.sustain(1);
+    amp_env.delay(0);
+
+    amp_env.release(50);
 
     // initialize filter
     ladder1.frequency(2000);
@@ -99,12 +119,15 @@ void handleNoteOn(byte channel, byte note, byte velocity) {
     AudioNoInterrupts();
     osc_freq = m2f(note);
     waveform1.frequency(osc_freq);
+    amp_env.noteOn();
     AudioInterrupts();
     Serial.printf("Set frequency to: %f\n", osc_freq);
 }
 
 void handleNoteOff(byte channel, byte note, byte velocity) {
-    // nop
+    AudioNoInterrupts();
+    amp_env.noteOff();
+    AudioInterrupts();
 }
 
 void handleControlChange(byte channel, byte control, byte value) {
