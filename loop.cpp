@@ -27,7 +27,6 @@ short direction = -1;
 float osc_freq = 440;
 __attribute__((unused)) void doSetup() {
     Serial.begin(9600);
-
     // Set up MIDI
     usbMIDI.setHandleNoteOn(handleNoteOn);
     usbMIDI.setHandleNoteOff(handleNoteOff);
@@ -68,19 +67,21 @@ __attribute__((unused)) void doSetup() {
 
 
 __attribute__((unused)) void doLoop() {
+    if (counter % 50 == 0) {
+        Serial.println("HERE!");
+    }
     usbMIDI.read();
     AudioNoInterrupts();
     uint16_t cpu_filt = ladder1.cpu_cycles;
     uint16_t cpu_max_filt = ladder1.cpu_cycles_max;
     uint16_t cpu_osc = waveform1.cpu_cycles;
     AudioInterrupts();
-
     digitalWrite(LED_BUILTIN, HIGH);
     display.clearDisplay();
     display.setTextColor(WHITE);
     display.setCursor(0, 8);
     //display.printf("Count: %d\n", counter);
-    display.printf("Ofreq: %f\n", int(osc_freq), int(osc_freq));
+    display.printf("Ofreq: %f\n", osc_freq);
     display.printf("F cpu: %d, m: %d\n", cpu_filt, cpu_max_filt);
     display.printf("O cpu : %d\n", cpu_osc);
     //display.drawCircle(counter, 16, 5, WHITE);
@@ -96,9 +97,12 @@ __attribute__((unused)) void doLoop() {
 }
 
 void handleNoteOn(byte channel, byte note, byte velocity) {
+    Serial.printf("MIDI: channel: %d, note: %d, velocity: %d\n", channel, note, velocity);
     AudioNoInterrupts();
     osc_freq = m2f(note);
+    waveform1.frequency(osc_freq);
     AudioInterrupts();
+    Serial.printf("Set frequency to: %f\n", osc_freq);
 }
 
 void handleNoteOff(byte channel, byte note, byte velocity) {

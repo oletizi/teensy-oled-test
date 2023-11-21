@@ -1,8 +1,9 @@
 .PHONY: all build upload monitor
 
 PORT := $(shell ./find-port.sh)
-CLEAN := --clean
-#CLEAN :=
+# Set CLEAN to --clean when changing build.usbtype build property
+#CLEAN := --clean
+CLEAN :=
 all: build upload
 
 # --clean was needed to get midi to work right. Probably not needed for every build.
@@ -12,7 +13,8 @@ build:
 upload:
 	arduino-cli upload -p $(PORT) --fqbn teensy:avr:teensy41 . #&& arduino-cli monitor -p $(PORT)
 
-
+monitor:
+	arduino-cli monitor -p $(PORT)
 board:
 	arduino-cli board list
 
