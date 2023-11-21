@@ -67,16 +67,13 @@ __attribute__((unused)) void doSetup() {
 
 
 __attribute__((unused)) void doLoop() {
-    if (counter % 50 == 0) {
-        Serial.println("HERE!");
-    }
     usbMIDI.read();
     AudioNoInterrupts();
     uint16_t cpu_filt = ladder1.cpu_cycles;
     uint16_t cpu_max_filt = ladder1.cpu_cycles_max;
     uint16_t cpu_osc = waveform1.cpu_cycles;
     AudioInterrupts();
-    digitalWrite(LED_BUILTIN, HIGH);
+    //digitalWrite(LED_BUILTIN, HIGH);
     display.clearDisplay();
     display.setTextColor(WHITE);
     display.setCursor(0, 8);
@@ -98,6 +95,7 @@ __attribute__((unused)) void doLoop() {
 
 void handleNoteOn(byte channel, byte note, byte velocity) {
     Serial.printf("MIDI: channel: %d, note: %d, velocity: %d\n", channel, note, velocity);
+    digitalWrite(LED_BUILTIN, HIGH);
     AudioNoInterrupts();
     osc_freq = m2f(note);
     waveform1.frequency(osc_freq);
