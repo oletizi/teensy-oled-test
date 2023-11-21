@@ -25,16 +25,25 @@
 #include <SerialFlash.h>
 
 // GUItool: begin automatically generated code
+#include <Audio.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <SD.h>
+#include <SerialFlash.h>
+
+// GUItool: begin automatically generated code
 AudioSynthWaveform       waveform1;      //xy=119,156
 AudioFilterLadder        ladder1;        //xy=281,153
 AudioEffectEnvelope      amp_env;      //xy=439,150
 AudioOutputI2S           i2s1;           //xy=616,173
 AudioAnalyzeRMS          rms1;           //xy=616,221
+AudioAnalyzePeak         peak1;          //xy=618,270
 AudioConnection          patchCord1(waveform1, 0, ladder1, 0);
 AudioConnection          patchCord2(ladder1, amp_env);
 AudioConnection          patchCord3(amp_env, 0, i2s1, 0);
 AudioConnection          patchCord4(amp_env, 0, i2s1, 1);
 AudioConnection          patchCord5(amp_env, rms1);
+AudioConnection          patchCord6(amp_env, peak1);
 AudioControlSGTL5000     sgtl5000_1;     //xy=299,289
 // GUItool: end automatically generated code
 
@@ -44,8 +53,13 @@ short counter = 0;
 short direction = -1;
 float osc_freq = 440;
 float rms_val = 0;
+float peak_val = 0;
+uint32_t t0 = 0;
+
 __attribute__((unused)) void doSetup() {
     Serial.begin(9600);
+
+    t0 = millis();
     // Set up MIDI
     usbMIDI.setHandleNoteOn(handleNoteOn);
     usbMIDI.setHandleNoteOff(handleNoteOff);
@@ -95,12 +109,20 @@ __attribute__((unused)) void doSetup() {
 
 
 __attribute__((unused)) void doLoop() {
+    uint32_t now = millis();
+    if (now - t0 >= 500) {
+        t0 = now;
+    }
+
     usbMIDI.read();
     AudioNoInterrupts();
     uint16_t cpu_filt = ladder1.cpu_cycles;
     uint16_t cpu_max_filt = ladder1.cpu_cycles_max;
     uint16_t cpu_osc = waveform1.cpu_cycles;
     rms_val = rms1.read();
+    if (t0 == now) {
+        peak_val = peak1.read();
+    }
     AudioInterrupts();
     //digitalWrite(LED_BUILTIN, HIGH);
     display.clearDisplay();
@@ -109,11 +131,12 @@ __attribute__((unused)) void doLoop() {
     //display.printf("Count: %d\n", counter);
     display.printf("Ofreq: %f\n", osc_freq);
     display.printf("RMS  : %f\n", rms_val);
-    display.printf("F cpu: %d, m: %d\n", cpu_filt, cpu_max_filt);
+    display.printf("Peak : %f\n", peak_val);
     //display.drawCircle(counter, 16, 5, WHITE);
     float rms_indicator_value = scale(rms_val, 0, 1, 0, 127, 1);
-    //display.drawFastVLine(rms_indicator_value, 0, 7, WHITE);
+    float peak_indicator_value = scale(peak_val, 0, 1, 0, 127, 1);
     display.fillRect(0, 0, rms_indicator_value, 7, WHITE);
+    display.drawFastVLine(peak_indicator_value, 0, 7, WHITE);
 
     display.display();
 
