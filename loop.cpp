@@ -3,6 +3,7 @@
 //
 
 #include "loop.h"
+#include "cc_map.h"
 #include <Audio.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -11,41 +12,26 @@
 #include <MIDI.h>
 
 // GUItool: begin automatically generated code
-#include <Audio.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <SD.h>
-#include <SerialFlash.h>
-
-// GUItool: begin automatically generated code
-#include <Audio.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <SD.h>
-#include <SerialFlash.h>
-
-// GUItool: begin automatically generated code
-#include <Audio.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <SD.h>
-#include <SerialFlash.h>
-
-// GUItool: begin automatically generated code
 AudioSynthWaveform       waveform1;      //xy=119,156
 AudioFilterLadder        ladder1;        //xy=281,153
 AudioEffectEnvelope      amp_env;      //xy=439,150
-AudioOutputI2S           i2s1;           //xy=616,173
-AudioAnalyzeRMS          rms1;           //xy=616,221
-AudioAnalyzePeak         peak1;          //xy=618,270
+AudioEffectFreeverb      freeverb1;      //xy=498,243
+AudioMixer4              mixer1;         //xy=598,153
+AudioOutputI2S           i2s1;           //xy=774,147
+AudioAnalyzeRMS          rms1;           //xy=774,195
+AudioAnalyzePeak         peak1;          //xy=776,244
 AudioConnection          patchCord1(waveform1, 0, ladder1, 0);
 AudioConnection          patchCord2(ladder1, amp_env);
-AudioConnection          patchCord3(amp_env, 0, i2s1, 0);
-AudioConnection          patchCord4(amp_env, 0, i2s1, 1);
-AudioConnection          patchCord5(amp_env, rms1);
-AudioConnection          patchCord6(amp_env, peak1);
+AudioConnection          patchCord3(amp_env, 0, mixer1, 0);
+AudioConnection          patchCord4(amp_env, freeverb1);
+AudioConnection          patchCord5(freeverb1, 0, mixer1, 1);
+AudioConnection          patchCord6(mixer1, 0, i2s1, 0);
+AudioConnection          patchCord7(mixer1, 0, i2s1, 1);
+AudioConnection          patchCord8(mixer1, rms1);
+AudioConnection          patchCord9(mixer1, peak1);
 AudioControlSGTL5000     sgtl5000_1;     //xy=299,289
 // GUItool: end automatically generated code
+
 
 Adafruit_SSD1306 display(4);
 
@@ -63,6 +49,7 @@ __attribute__((unused)) void doSetup() {
     // Set up MIDI
     usbMIDI.setHandleNoteOn(handleNoteOn);
     usbMIDI.setHandleNoteOff(handleNoteOff);
+    usbMIDI.setHandleControlChange(handleControlChange);
     usbMIDI.begin();
 
     // Set up audio
@@ -72,13 +59,18 @@ __attribute__((unused)) void doSetup() {
 
     // Audio connections require memory to work.  For more
     // detailed information, see the MemoryAndCpuUsage example
-    AudioMemory(24);
+    AudioMemory(48);
 
     // Comment these out if not using the audio adaptor board.
     // This may wait forever if the SDA & SCL pins lack
     // pullup resistors
     sgtl5000_1.enable();
-    sgtl5000_1.volume(0.7); // caution: very loud - use oscilloscope only!
+    sgtl5000_1.volume(.7); // caution: very loud - use oscilloscope only!
+
+    mixer1.gain(0, 0.7);
+    mixer1.gain(1, 0.3);
+
+    freeverb1.roomsize(0.5);
 
     // initialize amp envelope
     amp_env.attack(50);
@@ -166,7 +158,23 @@ void handleNoteOff(byte channel, byte note, byte velocity) {
 }
 
 void handleControlChange(byte channel, byte control, byte value) {
-    // nop
+    Serial.printf("CC: chan: %d, control: %d, val: %d", channel, control, value);
+    digitalWrite(LED_BUILTIN, HIGH);
+    AudioNoInterrupts();
+    switch (control) {
+        case CC_REVERB_TIME:
+            freeverb1.roomsize(scale(value, 0, 127, 0, 1, 1));
+            break;
+        case CC_REVERB_CUTOFF:
+            freeverb1.damping(scale(value, 0, 127, 0, 1, 1));
+            break;
+        case CC_REVERB_BALANCE:
+            mixer1.gain(1, scale(value, 0, 127, 0, 1, 1));
+            break;
+        default: break;
+
+    }
+    AudioInterrupts();
 }
 
 float m2f(int note) {
