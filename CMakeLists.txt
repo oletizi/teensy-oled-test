@@ -9,6 +9,7 @@ add_executable(teensy-oled-test loop.h loop.cpp)
 target_include_directories(teensy-oled-test PUBLIC
         ${TEENSY_ROOT}/cores/teensy4
         ${TEENSY_LIBS}/Audio
+        ${TEENSY_LIBS}/MIDI/src
         ${TEENSY_LIBS}/SD/src
         ${TEENSY_LIBS}/SerialFlash
         ${TEENSY_LIBS}/SPI

@@ -8,6 +8,7 @@
 #include <SPI.h>
 #include <SD.h>
 #include <SerialFlash.h>
+#include <MIDI.h>
 
 // GUItool: begin automatically generated code
 AudioSynthWaveform waveform1;      //xy=119,156
@@ -19,18 +20,18 @@ AudioConnection patchCord3(ladder1, 0, i2s1, 1);
 AudioControlSGTL5000 sgtl5000_1;     //xy=299,289
 // GUItool: end automatically generated code
 
-
-
-
-
-
 Adafruit_SSD1306 display(4);
 
-int counter = 0;
-int direction = -1;
-
+short counter = 0;
+short direction = -1;
+float osc_freq = 440;
 __attribute__((unused)) void doSetup() {
     Serial.begin(9600);
+
+    // Set up MIDI
+    usbMIDI.setHandleNoteOn(handleNoteOn);
+    usbMIDI.setHandleNoteOff(handleNoteOff);
+    usbMIDI.begin();
 
     // Set up audio
     pinMode(0, INPUT_PULLUP);
@@ -67,16 +68,11 @@ __attribute__((unused)) void doSetup() {
 
 
 __attribute__((unused)) void doLoop() {
-
+    usbMIDI.read();
     AudioNoInterrupts();
     uint16_t cpu_filt = ladder1.cpu_cycles;
     uint16_t cpu_max_filt = ladder1.cpu_cycles_max;
     uint16_t cpu_osc = waveform1.cpu_cycles;
-    float osc_freq = 220.0f + (float(counter) * 2.0f);
-    float filt_freq = osc_freq * 8;
-
-    waveform1.frequency(osc_freq);
-    ladder1.frequency(filt_freq);
     AudioInterrupts();
 
     digitalWrite(LED_BUILTIN, HIGH);
@@ -84,7 +80,7 @@ __attribute__((unused)) void doLoop() {
     display.setTextColor(WHITE);
     display.setCursor(0, 8);
     //display.printf("Count: %d\n", counter);
-    display.printf("Of: %d, Ff: %d\n", int(osc_freq), int(filt_freq));
+    display.printf("Ofreq: %f\n", int(osc_freq), int(osc_freq));
     display.printf("F cpu: %d, m: %d\n", cpu_filt, cpu_max_filt);
     display.printf("O cpu : %d\n", cpu_osc);
     //display.drawCircle(counter, 16, 5, WHITE);
@@ -97,4 +93,23 @@ __attribute__((unused)) void doLoop() {
         direction *= -1;
     }
     counter = counter + direction;
+}
+
+void handleNoteOn(byte channel, byte note, byte velocity) {
+    AudioNoInterrupts();
+    osc_freq = m2f(note);
+    AudioInterrupts();
+}
+
+void handleNoteOff(byte channel, byte note, byte velocity) {
+    // nop
+}
+
+void handleControlChange(byte channel, byte control, byte value) {
+    // nop
+}
+
+float m2f(int note) {
+    float a = 440; //frequency of A (coomon value is 440Hz)
+    return (a / 32) * pow(2, ((note - 9) / 12.0));
 }
