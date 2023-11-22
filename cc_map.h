@@ -5,6 +5,8 @@
 #ifndef OL_DSP_CC_MAP_H
 #define OL_DSP_CC_MAP_H
 
+#define CC_VOLUME 7
+
 #define CC_REVERB_TIME 32
 #define CC_REVERB_CUTOFF 33
 #define CC_REVERB_BALANCE 34

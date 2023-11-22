@@ -11,33 +11,36 @@
 #include <SerialFlash.h>
 
 // GUItool: begin automatically generated code
-AudioSynthWaveform waveform1;      //xy=119,156
-AudioFilterLadder ladder1;        //xy=281,153
-AudioMixer4 delay_input_mixer;         //xy=283,353
-AudioEffectEnvelope amp_env;      //xy=439,150
-AudioEffectDelay delay1;         //xy=512,354
-AudioEffectFreeverb freeverb1;      //xy=516,246
-AudioMixer4 mixer1;         //xy=598,153
-AudioAmplifier delay_feedback;           //xy=717,445
-AudioOutputI2S i2s1;           //xy=774,147
-AudioAnalyzeRMS rms1;           //xy=774,195
-AudioAnalyzePeak peak1;          //xy=776,244
-AudioConnection patchCord1(waveform1, 0, ladder1, 0);
-AudioConnection patchCord2(ladder1, amp_env);
-AudioConnection patchCord3(delay_input_mixer, delay1);
-AudioConnection patchCord4(amp_env, 0, mixer1, 0);
-AudioConnection patchCord5(amp_env, freeverb1);
-AudioConnection patchCord6(amp_env, 0, delay_input_mixer, 0);
-AudioConnection patchCord7(delay1, 0, delay_feedback, 0);
-AudioConnection patchCord8(delay1, 0, mixer1, 2);
-AudioConnection patchCord9(freeverb1, 0, mixer1, 1);
-AudioConnection patchCord10(mixer1, 0, i2s1, 0);
-AudioConnection patchCord11(mixer1, 0, i2s1, 1);
-AudioConnection patchCord12(mixer1, rms1);
-AudioConnection patchCord13(mixer1, peak1);
-AudioConnection patchCord14(delay_feedback, 0, delay_input_mixer, 1);
-AudioControlSGTL5000 sgtl5000_1;     //xy=116,218
+AudioSynthWaveform       waveform1;      //xy=64,105
+AudioMixer4              delay_input_mixer;         //xy=142,240
+AudioFilterLadder        ladder1;        //xy=198,115
+AudioAmplifier           delay_feedback;           //xy=298,372
+AudioEffectEnvelope      amp_env;      //xy=328,108
+AudioEffectDelay         delay1;         //xy=329,269
+AudioEffectFreeverb      freeverb1;      //xy=337,169
+AudioMixer4              mixer1;         //xy=503,121
+AudioAmplifier           master_vol;           //xy=649,122
+AudioOutputI2S           i2s1;           //xy=862,132
+AudioAnalyzeRMS          rms1;           //xy=862,180
+AudioAnalyzePeak         peak1;          //xy=862,226
+AudioConnection          patchCord1(waveform1, 0, ladder1, 0);
+AudioConnection          patchCord2(delay_input_mixer, delay1);
+AudioConnection          patchCord3(ladder1, amp_env);
+AudioConnection          patchCord4(delay_feedback, 0, delay_input_mixer, 1);
+AudioConnection          patchCord5(amp_env, 0, mixer1, 0);
+AudioConnection          patchCord6(amp_env, freeverb1);
+AudioConnection          patchCord7(amp_env, 0, delay_input_mixer, 0);
+AudioConnection          patchCord8(delay1, 0, delay_feedback, 0);
+AudioConnection          patchCord9(delay1, 0, mixer1, 2);
+AudioConnection          patchCord10(freeverb1, 0, mixer1, 1);
+AudioConnection          patchCord11(mixer1, master_vol);
+AudioConnection          patchCord12(master_vol, 0, i2s1, 0);
+AudioConnection          patchCord13(master_vol, 0, i2s1, 1);
+AudioConnection          patchCord14(master_vol, rms1);
+AudioConnection          patchCord15(master_vol, peak1);
+AudioControlSGTL5000     sgtl5000_1;     //xy=74,498
 // GUItool: end automatically generated code
+
 
 Adafruit_SSD1306 display(4);
 const uint16_t AUDIO_MEMORY = 192;
@@ -76,7 +79,8 @@ __attribute__((unused)) void doSetup() {
     // This may wait forever if the SDA & SCL pins lack
     // pullup resistors
     sgtl5000_1.enable();
-    sgtl5000_1.volume(.7); // caution: very loud - use oscilloscope only!
+    sgtl5000_1.volume(1); // caution: very loud - use oscilloscope only!
+    master_vol.gain(0.5);
 
     // configure mixer
     mixer1.gain(0, 0.5); // dry
@@ -209,6 +213,9 @@ void handleControlChange(byte channel, byte control, byte value) {
     float feedback_value = 0;
     AudioNoInterrupts();
     switch (control) {
+        case CC_VOLUME:
+            master_vol.gain(scale(value, 0, 127, 0, 1, 1.1));
+            break;
         case CC_LPF_CUTOFF:
             ladder1.frequency(scale(value, 0, 127, 0, 20000, 1.02));
             break;
