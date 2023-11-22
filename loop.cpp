@@ -14,8 +14,8 @@
 AudioSynthWaveform waveform1;      //xy=66,20
 AudioSynthWaveformDc filt_env_amount;            //xy=79.5,65
 AudioEffectEnvelope filt_env;      //xy=142,134
+AudioFilterStateVariable delay_input_filter;        //xy=189,221
 AudioAmplifier delay_feedback;           //xy=197,360
-AudioFilterBiquad delay_filter;        //xy=222,203
 AudioFilterLadder ladder1;        //xy=315,30.5
 AudioMixer4 delay_input_mixer;         //xy=394,225
 AudioEffectEnvelope amp_env;      //xy=445,28
@@ -29,13 +29,13 @@ AudioAnalyzePeak peak1;          //xy=862,226
 AudioConnection patchCord1(waveform1, 0, ladder1, 0);
 AudioConnection patchCord2(filt_env_amount, filt_env);
 AudioConnection patchCord3(filt_env, 0, ladder1, 1);
-AudioConnection patchCord4(delay_feedback, 0, delay_input_mixer, 1);
-AudioConnection patchCord5(delay_filter, 0, delay_input_mixer, 0);
+AudioConnection patchCord4(delay_input_filter, 0, delay_input_mixer, 0);
+AudioConnection patchCord5(delay_feedback, 0, delay_input_mixer, 1);
 AudioConnection patchCord6(ladder1, amp_env);
 AudioConnection patchCord7(delay_input_mixer, delay1);
 AudioConnection patchCord8(amp_env, 0, mixer1, 0);
 AudioConnection patchCord9(amp_env, freeverb1);
-AudioConnection patchCord10(amp_env, delay_filter);
+AudioConnection patchCord10(amp_env, 0, delay_input_filter, 0);
 AudioConnection patchCord11(freeverb1, 0, mixer1, 1);
 AudioConnection patchCord12(delay1, 0, delay_feedback, 0);
 AudioConnection patchCord13(delay1, 0, mixer1, 2);
@@ -49,7 +49,7 @@ AudioControlSGTL5000 sgtl5000_1;     //xy=74,498
 
 
 Adafruit_SSD1306 display(4);
-const uint16_t AUDIO_MEMORY = 192;
+const uint16_t AUDIO_MEMORY = 512;
 float audio_cpu;
 float audio_cpu_max;
 float audio_ram;
@@ -106,10 +106,7 @@ __attribute__((unused)) void doSetup() {
     delay_input_mixer.gain(0, 0.5); // dry input
     delay_input_mixer.gain(1, 0.5); // feedback input
 
-    delay_filter.setLowpass(0, 3000, 0.1);
-//    delay_filter.setLowpass(1, 3000, 0.1);
-//    delay_filter.setLowpass(2, 3000, 0.1);
-//    delay_filter.setHighpass(3, 300, 0);
+    delay_input_filter.frequency(3000);
 
     // initialize amp envelope
     amp_env.delay(0);
@@ -275,7 +272,7 @@ void handleControlChange(byte channel, byte control, byte value) {
             mixer1.gain(1, scale(value, 0, 127, 0, 1, 1));
             break;
         case CC_DELAY_TIME:
-            delay1.delay(0, scale(value, 0, 127, 0, 500, 1));
+            delay1.delay(0, scale(value, 0, 127, 0, 1000, 1));
             break;
         case CC_DELAY_FEEDBACK:
             feedback_value = scale(value, 0, 127, 0, 1, 1.02);
@@ -285,7 +282,10 @@ void handleControlChange(byte channel, byte control, byte value) {
             mixer1.gain(2, scale(value, 0, 127, 0, 1, 1));
             break;
         case CC_DELAY_CUTOFF:
-            delay_filter.setLowpass(0, scale(value, 0, 127, 0, 20000, 1), 0.1);
+            delay_input_filter.frequency(scale(value, 0, 127, 0, 20000, 1));
+            break;
+        case CC_DELAY_RESONANCE:
+            delay_input_filter.resonance(scale(value, 0, 127, 0, 1, 1));
             break;
         default:
             break;
