@@ -225,6 +225,9 @@ void handleControlChange(byte channel, byte control, byte value) {
             feedback_value = scale(value, 0, 127, 0, 1, 1.02);
             delay_feedback.gain(feedback_value);
             break;
+        case CC_DELAY_BALANCE:
+            mixer1.gain(2, scale(value, 0, 127, 0, 1, 1));
+            break;
         default:
             break;
 
