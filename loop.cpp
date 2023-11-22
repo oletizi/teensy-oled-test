@@ -11,35 +11,41 @@
 #include <SerialFlash.h>
 
 // GUItool: begin automatically generated code
-AudioSynthWaveform       waveform1;      //xy=64,105
-AudioMixer4              delay_input_mixer;         //xy=142,240
-AudioFilterLadder        ladder1;        //xy=198,115
-AudioAmplifier           delay_feedback;           //xy=298,372
-AudioEffectEnvelope      amp_env;      //xy=328,108
-AudioEffectDelay         delay1;         //xy=329,269
-AudioEffectFreeverb      freeverb1;      //xy=337,169
-AudioMixer4              mixer1;         //xy=503,121
-AudioAmplifier           master_vol;           //xy=649,122
+AudioSynthWaveform       waveform1;      //xy=66,20
+AudioSynthWaveformDc     filt_env_amount;            //xy=79.5,65
+AudioEffectEnvelope      filt_env;      //xy=142,134
+AudioMixer4              delay_input_mixer;         //xy=254,277
+AudioFilterLadder        ladder1;        //xy=315,30.5
+AudioAmplifier           delay_feedback;           //xy=370,363
+AudioEffectDelay         delay1;         //xy=435,256
+AudioEffectFreeverb      freeverb1;      //xy=439,160
+AudioEffectEnvelope      amp_env;      //xy=445,28
+AudioAmplifier           master_vol;           //xy=711,142
+AudioMixer4              mixer1;         //xy=716,59
 AudioOutputI2S           i2s1;           //xy=862,132
 AudioAnalyzeRMS          rms1;           //xy=862,180
 AudioAnalyzePeak         peak1;          //xy=862,226
 AudioConnection          patchCord1(waveform1, 0, ladder1, 0);
-AudioConnection          patchCord2(delay_input_mixer, delay1);
-AudioConnection          patchCord3(ladder1, amp_env);
-AudioConnection          patchCord4(delay_feedback, 0, delay_input_mixer, 1);
-AudioConnection          patchCord5(amp_env, 0, mixer1, 0);
-AudioConnection          patchCord6(amp_env, freeverb1);
-AudioConnection          patchCord7(amp_env, 0, delay_input_mixer, 0);
-AudioConnection          patchCord8(delay1, 0, delay_feedback, 0);
-AudioConnection          patchCord9(delay1, 0, mixer1, 2);
-AudioConnection          patchCord10(freeverb1, 0, mixer1, 1);
-AudioConnection          patchCord11(mixer1, master_vol);
-AudioConnection          patchCord12(master_vol, 0, i2s1, 0);
-AudioConnection          patchCord13(master_vol, 0, i2s1, 1);
-AudioConnection          patchCord14(master_vol, rms1);
-AudioConnection          patchCord15(master_vol, peak1);
+AudioConnection          patchCord2(filt_env_amount, filt_env);
+AudioConnection          patchCord3(filt_env, 0, ladder1, 1);
+AudioConnection          patchCord4(delay_input_mixer, delay1);
+AudioConnection          patchCord5(ladder1, amp_env);
+AudioConnection          patchCord6(delay_feedback, 0, delay_input_mixer, 1);
+AudioConnection          patchCord7(delay1, 0, delay_feedback, 0);
+AudioConnection          patchCord8(delay1, 0, mixer1, 2);
+AudioConnection          patchCord9(freeverb1, 0, mixer1, 1);
+AudioConnection          patchCord10(amp_env, 0, mixer1, 0);
+AudioConnection          patchCord11(amp_env, freeverb1);
+AudioConnection          patchCord12(amp_env, 0, delay_input_mixer, 0);
+AudioConnection          patchCord13(master_vol, 0, i2s1, 0);
+AudioConnection          patchCord14(master_vol, 0, i2s1, 1);
+AudioConnection          patchCord15(master_vol, rms1);
+AudioConnection          patchCord16(master_vol, peak1);
+AudioConnection          patchCord17(mixer1, master_vol);
 AudioControlSGTL5000     sgtl5000_1;     //xy=74,498
 // GUItool: end automatically generated code
+
+
 
 
 Adafruit_SSD1306 display(4);
@@ -101,16 +107,26 @@ __attribute__((unused)) void doSetup() {
     delay_input_mixer.gain(1, 0.5); // feedback input
 
     // initialize amp envelope
-    amp_env.attack(50);
+    amp_env.delay(0);
+    amp_env.attack(0);
     amp_env.hold(0);
     amp_env.decay(0);
     amp_env.sustain(1);
-    amp_env.delay(0);
-
     amp_env.release(50);
 
+    // intialize filt envelope
+    filt_env_amount.amplitude(1);
+
+    filt_env.delay(0);
+    filt_env.attack(0);
+    filt_env.hold(0);
+    filt_env.decay(100);
+    filt_env.sustain(0);
+    filt_env.release(50);
+
     // initialize filter
-    ladder1.frequency(2000);
+    ladder1.octaveControl(7);
+    ladder1.frequency(200);
     ladder1.resonance(0.7);
     ladder1.inputDrive(1);
 
@@ -135,7 +151,9 @@ __attribute__((unused)) void doLoop() {
     }
 
     usbMIDI.read();
+    // audio stuff
     AudioNoInterrupts();
+
     uint16_t cpu_filt = ladder1.cpu_cycles;
     uint16_t cpu_max_filt = ladder1.cpu_cycles_max;
     uint16_t cpu_osc = waveform1.cpu_cycles;
@@ -146,15 +164,9 @@ __attribute__((unused)) void doLoop() {
     audio_cpu = AudioProcessorUsage();
     audio_ram = AudioMemoryUsage();
     AudioInterrupts();
-    //digitalWrite(LED_BUILTIN, HIGH);
+
+    // Display
     display.clearDisplay();
-    //display.setTextColor(WHITE);
-    //display.setCursor(0, 24);
-    //display.printf("Count: %d\n", counter);
-    //display.printf("cpu: %f\n", audio_cpu);
-    //display.printf("mem: %f\n", audio_ram);
-    //display.printf("Peak : %f\n", peak_val);
-    //display.drawCircle(counter, 16, 5, WHITE);
     display.setTextColor(WHITE);
 
     uint8_t label_width = 24;
@@ -196,6 +208,7 @@ void handleNoteOn(byte channel, byte note, byte velocity) {
     AudioNoInterrupts();
     osc_freq = m2f(note);
     waveform1.frequency(osc_freq);
+    filt_env.noteOn();
     amp_env.noteOn();
     AudioInterrupts();
     Serial.printf("Set frequency to: %f\n", osc_freq);
@@ -203,6 +216,7 @@ void handleNoteOn(byte channel, byte note, byte velocity) {
 
 void handleNoteOff(byte channel, byte note, byte velocity) {
     AudioNoInterrupts();
+    filt_env.noteOff();
     amp_env.noteOff();
     AudioInterrupts();
 }
@@ -217,10 +231,34 @@ void handleControlChange(byte channel, byte control, byte value) {
             master_vol.gain(scale(value, 0, 127, 0, 1, 1.1));
             break;
         case CC_LPF_CUTOFF:
-            ladder1.frequency(scale(value, 0, 127, 0, 20000, 1.02));
+            ladder1.frequency(scale(value, 0, 127, 1, 20000, 0.9));
             break;
         case CC_LPF_RESONANCE:
             ladder1.resonance(scale(value, 0, 127, 0, 1, 1));
+            break;
+        case CC_LPF_DRIVE:
+            ladder1.inputDrive(scale(value, 0, 127, 0, 1, 1));
+            break;
+        case CC_LPF_ENV_AMT:
+            filt_env_amount.amplitude(scale(value, 0, 127, 0, 1, 1));
+            break;
+        case CC_LPF_ENV_DELAY:
+            filt_env.delay(scale(value, 0, 127, 0, 500, 1));
+            break;
+        case CC_LPF_ENV_ATTACK:
+            filt_env.attack(scale(value, 0, 127, 0, 500, 1));
+            break;
+        case CC_LPF_ENV_HOLD:
+            filt_env.hold(scale(value, 0, 127, 0, 500, 1));
+            break;
+        case CC_LPF_ENV_DECAY:
+            filt_env.decay(scale(value, 0, 127, 0, 1000, 1));
+            break;
+        case CC_LPF_ENV_SUSTAIN:
+            filt_env.sustain(scale(value, 0, 127, 0, 1, 1));
+            break;
+        case CC_LPF_ENV_RELEASE:
+            filt_env.release(scale(value, 0, 127, 0, 500, 1));
             break;
         case CC_REVERB_TIME:
             freeverb1.roomsize(scale(value, 0, 127, 0, 1, 1));

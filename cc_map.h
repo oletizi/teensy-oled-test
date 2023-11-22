@@ -21,5 +21,14 @@
 #define CC_LPF_CUTOFF 41
 #define CC_LPF_RESONANCE 42
 #define CC_LPF_TYPE 43
+#define CC_LPF_DRIVE 44
+#define CC_LPF_ENV_AMT 45
+
+#define CC_LPF_ENV_DELAY 46
+#define CC_LPF_ENV_ATTACK 47
+#define CC_LPF_ENV_HOLD 48
+#define CC_LPF_ENV_DECAY 49
+#define CC_LPF_ENV_SUSTAIN 50
+#define CC_LPF_ENV_RELEASE 51
 
 #endif //OL_DSP_CC_MAP_H
