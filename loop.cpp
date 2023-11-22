@@ -209,6 +209,9 @@ void handleControlChange(byte channel, byte control, byte value) {
     float feedback_value = 0;
     AudioNoInterrupts();
     switch (control) {
+        case CC_LPF_CUTOFF:
+            ladder1.frequency(scale(value, 0, 127, 0, 20000, 1.02));
+            break;
         case CC_REVERB_TIME:
             freeverb1.roomsize(scale(value, 0, 127, 0, 1, 1));
             break;
