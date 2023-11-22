@@ -144,17 +144,37 @@ __attribute__((unused)) void doLoop() {
     AudioInterrupts();
     //digitalWrite(LED_BUILTIN, HIGH);
     display.clearDisplay();
-    display.setTextColor(WHITE);
-    display.setCursor(0, 8);
+    //display.setTextColor(WHITE);
+    //display.setCursor(0, 24);
     //display.printf("Count: %d\n", counter);
-    display.printf("cpu: %f\n", audio_cpu);
-    display.printf("mem: %f\n", audio_ram);
-    display.printf("Peak : %f\n", peak_val);
+    //display.printf("cpu: %f\n", audio_cpu);
+    //display.printf("mem: %f\n", audio_ram);
+    //display.printf("Peak : %f\n", peak_val);
     //display.drawCircle(counter, 16, 5, WHITE);
-    float rms_indicator_value = scale(rms_val, 0, 1, 0, 127, 1);
-    float peak_indicator_value = scale(peak_val, 0, 1, 0, 127, 1);
-    display.fillRect(0, 0, rms_indicator_value, 7, WHITE);
-    display.drawFastVLine(peak_indicator_value, 0, 7, WHITE);
+    display.setTextColor(WHITE);
+
+    uint8_t label_width = 24;
+
+    float rms_indicator_value = scale(rms_val, 0, 1, 0, 127 - label_width, 1);
+    float peak_indicator_value = scale(peak_val, 0, 1, 0, 127 - label_width, 1);
+
+    // Draw RMS meter
+    display.setCursor(0, 0);
+    display.print("RMS");
+    display.fillRect(label_width + 1, 0, rms_indicator_value, 7, WHITE);
+    display.drawFastVLine(label_width + 1 + peak_indicator_value, 0, 7, WHITE);
+
+    // Draw memory meter
+    float ram_indicator_value = scale(audio_ram, 0, AUDIO_MEMORY, 0, 127 - label_width, 1);
+    display.fillRect(label_width + 1, 8, ram_indicator_value, 7, WHITE);
+    display.setCursor(0, 8);
+    display.println("RAM");
+
+    // Draw CPU meter
+    float cpu_indicator_value = scale(audio_cpu, 0, 100, 0, 127 - label_width, 1);
+    display.fillRect(label_width + 1, 16, cpu_indicator_value, 7, WHITE);
+    display.setCursor(0, 16);
+    display.println("CPU");
 
     display.display();
 
