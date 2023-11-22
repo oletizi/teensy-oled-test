@@ -11,41 +11,41 @@
 #include <SerialFlash.h>
 
 // GUItool: begin automatically generated code
-AudioSynthWaveform       waveform1;      //xy=66,20
-AudioSynthWaveformDc     filt_env_amount;            //xy=79.5,65
-AudioEffectEnvelope      filt_env;      //xy=142,134
-AudioMixer4              delay_input_mixer;         //xy=254,277
-AudioFilterLadder        ladder1;        //xy=315,30.5
-AudioAmplifier           delay_feedback;           //xy=370,363
-AudioEffectDelay         delay1;         //xy=435,256
-AudioEffectFreeverb      freeverb1;      //xy=439,160
-AudioEffectEnvelope      amp_env;      //xy=445,28
-AudioAmplifier           master_vol;           //xy=711,142
-AudioMixer4              mixer1;         //xy=716,59
-AudioOutputI2S           i2s1;           //xy=862,132
-AudioAnalyzeRMS          rms1;           //xy=862,180
-AudioAnalyzePeak         peak1;          //xy=862,226
-AudioConnection          patchCord1(waveform1, 0, ladder1, 0);
-AudioConnection          patchCord2(filt_env_amount, filt_env);
-AudioConnection          patchCord3(filt_env, 0, ladder1, 1);
-AudioConnection          patchCord4(delay_input_mixer, delay1);
-AudioConnection          patchCord5(ladder1, amp_env);
-AudioConnection          patchCord6(delay_feedback, 0, delay_input_mixer, 1);
-AudioConnection          patchCord7(delay1, 0, delay_feedback, 0);
-AudioConnection          patchCord8(delay1, 0, mixer1, 2);
-AudioConnection          patchCord9(freeverb1, 0, mixer1, 1);
-AudioConnection          patchCord10(amp_env, 0, mixer1, 0);
-AudioConnection          patchCord11(amp_env, freeverb1);
-AudioConnection          patchCord12(amp_env, 0, delay_input_mixer, 0);
-AudioConnection          patchCord13(master_vol, 0, i2s1, 0);
-AudioConnection          patchCord14(master_vol, 0, i2s1, 1);
-AudioConnection          patchCord15(master_vol, rms1);
-AudioConnection          patchCord16(master_vol, peak1);
-AudioConnection          patchCord17(mixer1, master_vol);
-AudioControlSGTL5000     sgtl5000_1;     //xy=74,498
+AudioSynthWaveform waveform1;      //xy=66,20
+AudioSynthWaveformDc filt_env_amount;            //xy=79.5,65
+AudioEffectEnvelope filt_env;      //xy=142,134
+AudioAmplifier delay_feedback;           //xy=197,360
+AudioFilterBiquad delay_filter;        //xy=222,203
+AudioFilterLadder ladder1;        //xy=315,30.5
+AudioMixer4 delay_input_mixer;         //xy=394,225
+AudioEffectEnvelope amp_env;      //xy=445,28
+AudioEffectFreeverb freeverb1;      //xy=515,148
+AudioEffectDelay delay1;         //xy=534,250
+AudioAmplifier master_vol;           //xy=711,142
+AudioMixer4 mixer1;         //xy=716,59
+AudioOutputI2S i2s1;           //xy=862,132
+AudioAnalyzeRMS rms1;           //xy=862,180
+AudioAnalyzePeak peak1;          //xy=862,226
+AudioConnection patchCord1(waveform1, 0, ladder1, 0);
+AudioConnection patchCord2(filt_env_amount, filt_env);
+AudioConnection patchCord3(filt_env, 0, ladder1, 1);
+AudioConnection patchCord4(delay_feedback, 0, delay_input_mixer, 1);
+AudioConnection patchCord5(delay_filter, 0, delay_input_mixer, 0);
+AudioConnection patchCord6(ladder1, amp_env);
+AudioConnection patchCord7(delay_input_mixer, delay1);
+AudioConnection patchCord8(amp_env, 0, mixer1, 0);
+AudioConnection patchCord9(amp_env, freeverb1);
+AudioConnection patchCord10(amp_env, delay_filter);
+AudioConnection patchCord11(freeverb1, 0, mixer1, 1);
+AudioConnection patchCord12(delay1, 0, delay_feedback, 0);
+AudioConnection patchCord13(delay1, 0, mixer1, 2);
+AudioConnection patchCord14(master_vol, 0, i2s1, 0);
+AudioConnection patchCord15(master_vol, 0, i2s1, 1);
+AudioConnection patchCord16(master_vol, rms1);
+AudioConnection patchCord17(master_vol, peak1);
+AudioConnection patchCord18(mixer1, master_vol);
+AudioControlSGTL5000 sgtl5000_1;     //xy=74,498
 // GUItool: end automatically generated code
-
-
 
 
 Adafruit_SSD1306 display(4);
@@ -105,6 +105,11 @@ __attribute__((unused)) void doSetup() {
     delay_feedback.gain(0.5);
     delay_input_mixer.gain(0, 0.5); // dry input
     delay_input_mixer.gain(1, 0.5); // feedback input
+
+    delay_filter.setLowpass(0, 3000, 0.1);
+//    delay_filter.setLowpass(1, 3000, 0.1);
+//    delay_filter.setLowpass(2, 3000, 0.1);
+//    delay_filter.setHighpass(3, 300, 0);
 
     // initialize amp envelope
     amp_env.delay(0);
@@ -278,6 +283,9 @@ void handleControlChange(byte channel, byte control, byte value) {
             break;
         case CC_DELAY_BALANCE:
             mixer1.gain(2, scale(value, 0, 127, 0, 1, 1));
+            break;
+        case CC_DELAY_CUTOFF:
+            delay_filter.setLowpass(0, scale(value, 0, 127, 0, 20000, 1), 0.1);
             break;
         default:
             break;
