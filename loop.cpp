@@ -212,6 +212,9 @@ void handleControlChange(byte channel, byte control, byte value) {
         case CC_LPF_CUTOFF:
             ladder1.frequency(scale(value, 0, 127, 0, 20000, 1.02));
             break;
+        case CC_LPF_RESONANCE:
+            ladder1.resonance(scale(value, 0, 127, 0, 1, 1));
+            break;
         case CC_REVERB_TIME:
             freeverb1.roomsize(scale(value, 0, 127, 0, 1, 1));
             break;
