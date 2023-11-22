@@ -14,14 +14,15 @@
 AudioSynthWaveform       waveform1;      //xy=66,20
 AudioSynthWaveformDc     filt_env_amount;            //xy=79.5,65
 AudioEffectEnvelope      filt_env;      //xy=142,134
-AudioFilterStateVariable delay_input_filter;        //xy=189,221
-AudioAmplifier           delay_feedback;           //xy=197,360
+AudioFilterStateVariable delay_input_filter;        //xy=189,296
+AudioAmplifier           delay_feedback;           //xy=193,398
 AudioFilterLadder        ladder1;        //xy=315,30.5
-AudioMixer4              reverb_input_mixer;         //xy=350,142
-AudioMixer4              delay_input_mixer;         //xy=394,225
+AudioMixer4              reverb_input_mixer;         //xy=318,188
 AudioEffectEnvelope      amp_env;      //xy=445,28
-AudioEffectDelay         delay1;         //xy=534,250
-AudioEffectFreeverb      freeverb1;      //xy=535,148
+AudioMixer4              delay_input_mixer;         //xy=447,424
+AudioFilterStateVariable reverb_input_filter;        //xy=514,195
+AudioEffectFreeverb      freeverb1;      //xy=555,96
+AudioEffectDelay         delay1;         //xy=709,384
 AudioAmplifier           master_vol;           //xy=711,142
 AudioMixer4              mixer1;         //xy=716,59
 AudioOutputI2S           i2s1;           //xy=862,132
@@ -33,22 +34,24 @@ AudioConnection          patchCord3(filt_env, 0, ladder1, 1);
 AudioConnection          patchCord4(delay_input_filter, 0, delay_input_mixer, 0);
 AudioConnection          patchCord5(delay_feedback, 0, delay_input_mixer, 1);
 AudioConnection          patchCord6(ladder1, amp_env);
-AudioConnection          patchCord7(reverb_input_mixer, freeverb1);
-AudioConnection          patchCord8(delay_input_mixer, delay1);
-AudioConnection          patchCord9(amp_env, 0, mixer1, 0);
-AudioConnection          patchCord10(amp_env, 0, delay_input_filter, 0);
-AudioConnection          patchCord11(amp_env, 0, reverb_input_mixer, 0);
-AudioConnection          patchCord12(delay1, 0, delay_feedback, 0);
-AudioConnection          patchCord13(delay1, 0, mixer1, 2);
-AudioConnection          patchCord14(delay1, 0, reverb_input_mixer, 1);
-AudioConnection          patchCord15(freeverb1, 0, mixer1, 1);
-AudioConnection          patchCord16(master_vol, 0, i2s1, 0);
-AudioConnection          patchCord17(master_vol, 0, i2s1, 1);
-AudioConnection          patchCord18(master_vol, rms1);
-AudioConnection          patchCord19(master_vol, peak1);
-AudioConnection          patchCord20(mixer1, master_vol);
+AudioConnection          patchCord7(reverb_input_mixer, 0, reverb_input_filter, 0);
+AudioConnection          patchCord8(amp_env, 0, mixer1, 0);
+AudioConnection          patchCord9(amp_env, 0, delay_input_filter, 0);
+AudioConnection          patchCord10(amp_env, 0, reverb_input_mixer, 0);
+AudioConnection          patchCord11(delay_input_mixer, delay1);
+AudioConnection          patchCord12(reverb_input_filter, 0, freeverb1, 0);
+AudioConnection          patchCord13(freeverb1, 0, mixer1, 1);
+AudioConnection          patchCord14(delay1, 0, delay_feedback, 0);
+AudioConnection          patchCord15(delay1, 0, mixer1, 2);
+AudioConnection          patchCord16(delay1, 0, reverb_input_mixer, 1);
+AudioConnection          patchCord17(master_vol, 0, i2s1, 0);
+AudioConnection          patchCord18(master_vol, 0, i2s1, 1);
+AudioConnection          patchCord19(master_vol, rms1);
+AudioConnection          patchCord20(master_vol, peak1);
+AudioConnection          patchCord21(mixer1, master_vol);
 AudioControlSGTL5000     sgtl5000_1;     //xy=74,498
 // GUItool: end automatically generated code
+
 
 Adafruit_SSD1306 display(4);
 const uint16_t AUDIO_MEMORY = 512;
@@ -92,14 +95,17 @@ __attribute__((unused)) void doSetup() {
 
     // configure mixer
     mixer1.gain(0, 0.5); // dry
-    mixer1.gain(1, 0.25); // reverb
+    mixer1.gain(1, 0.5); // reverb
     mixer1.gain(2, 0.5); // delay
 
     // configure reverb
-    freeverb1.roomsize(0.5);
+    reverb_input_mixer.gain(0, 0.5);
+    reverb_input_mixer.gain(0, 0.5);
+    reverb_input_filter.frequency(5000);
+    freeverb1.roomsize(0.7);
 
     // configure delay
-    delay1.delay(0, 250);
+    delay1.delay(0, 750);
     for (int i = 1; i < 8; i++) {
         // turn off the taps we're not using
         delay1.disable(i);
